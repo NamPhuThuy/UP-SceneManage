@@ -19,6 +19,7 @@ namespace NamPhuThuy.SceneManagement
         }  
         [SerializeField] private ActiveOn activeOn = ActiveOn.AWAKE;
         [SerializeField] private SceneConst.SceneName targetSceneName = SceneConst.SceneName.None;
+        [SerializeField] private float delayLoad = 0f;
 
         #region MonoBehaviour Callbacks
 
@@ -26,7 +27,7 @@ namespace NamPhuThuy.SceneManagement
         {
             if (activeOn == ActiveOn.AWAKE)
             {
-                LoadTargetScene();
+                StartCoroutine(IE_LoadTargetScene());
             }
         }
         
@@ -34,7 +35,7 @@ namespace NamPhuThuy.SceneManagement
         {
             if (activeOn == ActiveOn.START)
             {
-                LoadTargetScene();
+                StartCoroutine(IE_LoadTargetScene());
             }
         }
         
@@ -42,13 +43,19 @@ namespace NamPhuThuy.SceneManagement
         {
             if (activeOn == ActiveOn.ON_ENABLE)
             {
-                LoadTargetScene();
+                StartCoroutine(IE_LoadTargetScene());
             }
         }
 
         #endregion
 
         #region Private Methods
+        
+        private IEnumerator IE_LoadTargetScene()
+        {
+            yield return new WaitForSeconds(delayLoad);
+            LoadTargetScene();
+        }
 
         private void LoadTargetScene()
         {

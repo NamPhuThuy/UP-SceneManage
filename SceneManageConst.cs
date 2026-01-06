@@ -1,6 +1,6 @@
 namespace NamPhuThuy.SceneManagement
 {
-    public static partial class SceneConst
+    public static partial class SceneManageConst
     {
         public const string SCENE_BOOTSTRAP = "Bootstrap";
         public const string SCENE_LOADING = "Loading";

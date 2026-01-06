@@ -18,7 +18,7 @@ namespace NamPhuThuy.SceneManagement
             ON_ENABLE = 3
         }  
         [SerializeField] private ActiveOn activeOn = ActiveOn.AWAKE;
-        [SerializeField] private SceneConst.SceneName targetSceneName = SceneConst.SceneName.None;
+        [SerializeField] private SceneManageConst.SceneName targetSceneName = SceneManageConst.SceneName.None;
         [SerializeField] private float delayLoad = 0f;
 
         #region MonoBehaviour Callbacks
@@ -59,7 +59,7 @@ namespace NamPhuThuy.SceneManagement
 
         private void LoadTargetScene()
         {
-            if (targetSceneName != SceneConst.SceneName.None)
+            if (targetSceneName != SceneManageConst.SceneName.None)
             {
                 SceneManager.LoadScene(targetSceneName.ToString(), LoadSceneMode.Single);
             }

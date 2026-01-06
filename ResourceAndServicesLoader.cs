@@ -3,21 +3,23 @@ using System.Collections;
 using System.Collections.Generic;
 using DG.Tweening;
 using MoreMountains.Tools;
-using NamPhuThuy.Audio;
 using NamPhuThuy.Common;
-using NamPhuThuy.UI;
-using Spine.Unity;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
-using UnityEngine.EventSystems;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using Ease = PrimeTween.Ease;
+using Sequence = PrimeTween.Sequence;
+using Tween = PrimeTween.Tween;
 
 namespace NamPhuThuy.SceneManagement
 {
     public class ResourceAndServicesLoader : MonoBehaviour
     {
+        [Header("Flags")]
+        [SerializeField] private SceneManageConst.SceneName targetScene = SceneManageConst.SceneName.None;
+        
         [Header("Components")]
         [SerializeField] private RectTransform loadingScreenContainer;
         [SerializeField] private Image blackBackground;
@@ -63,7 +65,7 @@ namespace NamPhuThuy.SceneManagement
 
         private void Awake()
         {
-            AudioManager.Ins.Play(AudioEnum.MUSIC_BACKGROUND_INGAME);
+            // AudioManager.Ins.Play(AudioEnum.MUSIC_BACKGROUND_INGAME);
             SceneManager.sceneLoaded += OnSceneLoaded;
 
             progressBarFill.fillAmount = 0f;
@@ -98,11 +100,7 @@ namespace NamPhuThuy.SceneManagement
             for (int i = 0; i < tweens.Count; i++)
             {
                 var t = tweens[i];
-                if (t == null) continue;
-                if (t.IsActive())
-                    t.Kill(complete);
-                else
-                    t.Kill(complete);
+                t.Complete();
             }
 
             if (clearList)
@@ -124,14 +122,12 @@ namespace NamPhuThuy.SceneManagement
             bool isSplashScreenHidden = false;
 
             splashScreen.DOKill();
-            _tweens.Add(splashScreen.DOFade(0f, 0.3f)
-                    .OnComplete(() =>
-                    {
-                        splashScreen.gameObject.SetActive(false);
-                        isSplashScreenHidden = true;
-                    })
-            );
-
+            _tweens.Add(Tween.Alpha(splashScreen, 0f, 0.3f).OnComplete(() =>
+            {
+                splashScreen.gameObject.SetActive(false);
+                isSplashScreenHidden = true;
+            }));
+            
             while (!isSplashScreenHidden)
                 yield return waitForSeconds;
 
@@ -140,10 +136,10 @@ namespace NamPhuThuy.SceneManagement
             {
                 UpdateProgress();
                 yield return waitForSeconds;
-            }
+            }   
 
             // Load target scene additively
-            SceneManager.LoadScene("GamePlay", LoadSceneMode.Additive);
+            SceneManager.LoadScene(targetScene.ToString(), LoadSceneMode.Additive);
 
             // Gate until scene loaded, services ready (if enabled), and min time elapsed
             while ((!_isReadyToBurst || !ServicesReady) || timePassedAfterSceneLoaded < minExpectedLoadingTime)
@@ -171,52 +167,39 @@ namespace NamPhuThuy.SceneManagement
             progressBarFill.DOKill();
             blackBackground.DOKill();
 
-            var seq = DOTween.Sequence();
+            var seq = Sequence.Create();
 
             // Progress 0 -> 100% linearly
-            var toHundred = DOTween.To(
-                () => progressBarFill.fillAmount,
-                val =>
+            seq.Chain(Tween.Custom(
+                startValue: progressBarFill.fillAmount,
+                endValue: 1f, 
+                duration: burstLoadingDuration,
+                onValueChange: val => 
                 {
                     progressBarFill.fillAmount = val;
                     loadingText.text = $"{(int)(val * 100f)}%";
                 },
-                1f,
-                burstLoadingDuration
-            ).SetEase(Ease.Linear);
-
-            seq.Append(toHundred);
-
-            // After progress reaches 100%, pulse black background and finalize
-            seq.AppendCallback(() =>
-            {
-                blackBackground.gameObject.SetActive(true);
-
-                var c = blackBackground.color;
-                c.a = 0f;
-                blackBackground.color = c;
-
-                // Fade in then out (yoyo, 2 loops total)
-                var fade = blackBackground
-                    .DOFade(1f, fadeOutDuration)
-                    .SetLoops(2, LoopType.Yoyo)
-                    .OnComplete(() =>
-                    {
-                        MMEventManager.TriggerEvent(new EGameStarted());
-                        // GamePersistentVariable.isLoadingComplete = true;
-                        SceneManager.UnloadSceneAsync(SceneManager.GetActiveScene());
-                    });
-                _tweens.Add(fade);
-
-                // Hide loading UI halfway through the pulse (after first fade)
-                var hideDelay = DOVirtual.DelayedCall(fadeOutDuration, () =>
+                ease: Ease.OutQuad // Add your desired ease here
+            ));
+            
+            // Assuming 'seq' is your existing Sequence
+            seq.ChainCallback(() => 
+                {
+                    // 1. Setup: Activate and reset alpha to 0
+                    blackBackground.gameObject.SetActive(true);
+                    var c = blackBackground.color;
+                    c.a = 0f;
+                    blackBackground.color = c;
+                })
+                    // 2. The Fade Tween: Sequence waits for this to finish
+                .Chain(Tween.Alpha(blackBackground, 1f, fadeOutDuration)) 
+                    // 3. Finalize: Runs exactly when the fade finishes
+                .ChainCallback(() => 
                 {
                     loadingScreenContainer.gameObject.SetActive(false);
+                    MMEventManager.TriggerEvent(new EGameStarted());
+                    SceneManager.UnloadSceneAsync(SceneManager.GetActiveScene());
                 });
-                _tweens.Add(hideDelay);
-            });
-
-            _tweens.Add(seq);
         }
 
 

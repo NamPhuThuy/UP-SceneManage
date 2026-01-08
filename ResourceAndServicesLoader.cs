@@ -18,6 +18,7 @@ namespace NamPhuThuy.SceneManagement
     public class ResourceAndServicesLoader : MonoBehaviour
     {
         [Header("Flags")]
+        [SerializeField] private SceneManageConst.SceneName currentScene = SceneManageConst.SceneName.None;
         [SerializeField] private SceneManageConst.SceneName targetScene = SceneManageConst.SceneName.None;
         
         [Header("Components")]
@@ -30,7 +31,7 @@ namespace NamPhuThuy.SceneManagement
         [Header("Customize")]
         [SerializeField] private float minExpectedLoadingTime = 1.5f;
         [SerializeField] private float maxExpectedLoadingTime = 3.0f;
-        [SerializeField] private float burstLoadingDuration = 0.5f;
+        private const float BURST_LOADING_DURATION = 0.5f;
         [SerializeField] private float fadeOutDuration = 0.5f;
 
         [Header("Service gates (placeholders)")]
@@ -48,9 +49,11 @@ namespace NamPhuThuy.SceneManagement
 #endif
 
         private readonly List<Tween> _tweens = new List<Tween>();
-        private bool _isReadyToBurst; // set when GamePlay is loaded
+        [SerializeField] private bool _isReadyToBurst; // set when GamePlay is loaded
         private AsyncOperationHandle _menuSceneHandle;
 
+
+        private float maxLoadingTime = 20f;
         // Service states
         private volatile bool _remoteContentReady;
         private volatile bool _applovinReady;
@@ -111,6 +114,7 @@ namespace NamPhuThuy.SceneManagement
 
         private IEnumerator SlowTransititon()
         {
+            DebugLogger.LogFrog();
             var waitForSeconds = new WaitForSeconds(Time.fixedDeltaTime);
 
             float progress = 0f;
@@ -139,6 +143,7 @@ namespace NamPhuThuy.SceneManagement
             }   
 
             // Load target scene additively
+            DebugLogger.LogFrog(message:$"About to load the target scene");
             SceneManager.LoadScene(targetScene.ToString(), LoadSceneMode.Additive);
 
             // Gate until scene loaded, services ready (if enabled), and min time elapsed
@@ -146,6 +151,8 @@ namespace NamPhuThuy.SceneManagement
             {
                 UpdateProgress();
                 timePassedAfterSceneLoaded += Time.fixedDeltaTime;
+                if (timePassedAfterSceneLoaded > maxLoadingTime)
+                    break;
                 yield return waitForSeconds;
             }
 
@@ -163,29 +170,70 @@ namespace NamPhuThuy.SceneManagement
         // csharp
         private void BurstTransition()
         {
-            // Ensure targets have no running tweens
-            progressBarFill.DOKill();
-            blackBackground.DOKill();
+            DebugLogger.Log();
+            if (progressBarFill.IsActive())
+            {
+                progressBarFill.DOKill();
+            }
+
+            if (blackBackground.IsActive())
+            {
+                blackBackground.DOKill();
+            }
 
             var seq = Sequence.Create();
+            DebugLogger.Log(message:$"Sequence is created");
 
             // Progress 0 -> 100% linearly
             seq.Chain(Tween.Custom(
                 startValue: progressBarFill.fillAmount,
                 endValue: 1f, 
-                duration: burstLoadingDuration,
+                duration: BURST_LOADING_DURATION,
                 onValueChange: val => 
                 {
                     progressBarFill.fillAmount = val;
                     loadingText.text = $"{(int)(val * 100f)}%";
                 },
-                ease: Ease.OutQuad // Add your desired ease here
+                ease: Ease.OutQuad 
             ));
             
-            // Assuming 'seq' is your existing Sequence
-            seq.ChainCallback(() => 
+            DebugLogger.Log(message:$"Last Step");
+
+            seq.Chain(Tween.Delay(0f, () =>
+            {
+                // 1. Setup: Activate and reset alpha to 0
+                Debug.Log(message: $"Turn onthe black screen");
+                blackBackground.gameObject.SetActive(true);
+                var c = blackBackground.color;
+                c.a = 0f;
+                blackBackground.color = c;
+            }));
+            
+            
+            // 2. The Fade Tween: Sequence waits for this to finish
+            seq.Chain(Tween.Delay(0f, () =>
+            {
+                Debug.Log(message: $"Fade in the black screen");
+                Tween.Alpha(blackBackground, 1f, fadeOutDuration);
+            }));
+            
+            // 3. Finalize: Runs exactly when the fade finishes
+            seq.Chain(Tween.Delay(fadeOutDuration + 0.2f, () =>
+            {
+                Debug.Log(message: $"About to send EGameStarted");
+                
+                SceneManager.UnloadSceneAsync(currentScene.ToString());
+                
+                DebugLogger.Log(message: $"About to unload scene: {currentScene}");
+                MMEventManager.TriggerEvent(new EGameStarted());
+                
+                Debug.Log(message: $"Done trigger event EGameStarted");
+            }));
+            
+            /*seq.ChainCallback(() => 
                 {
                     // 1. Setup: Activate and reset alpha to 0
+                    Debug.Log(message:$"Fade in the black screen");
                     blackBackground.gameObject.SetActive(true);
                     var c = blackBackground.color;
                     c.a = 0f;
@@ -196,21 +244,20 @@ namespace NamPhuThuy.SceneManagement
                     // 3. Finalize: Runs exactly when the fade finishes
                 .ChainCallback(() => 
                 {
-                    loadingScreenContainer.gameObject.SetActive(false);
                     MMEventManager.TriggerEvent(new EGameStarted());
-                    SceneManager.UnloadSceneAsync(SceneManager.GetActiveScene());
-                });
+                    
+                    DebugLogger.Log(message: $"About to unload scene: {currentScene}");
+                    SceneManager.UnloadSceneAsync(currentScene.ToString());
+                    // loadingScreenContainer.gameObject.SetActive(false);
+                });*/
         }
 
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            if (scene.name == "GamePlay")
+            if (scene.name == targetScene.ToString())
             {
-                // audioListener.enabled = false;
-                // eventSystem.gameObject.SetActive(false);
                 _isReadyToBurst = true;
-                
             }
         }
 

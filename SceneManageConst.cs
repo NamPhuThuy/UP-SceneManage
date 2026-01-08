@@ -6,6 +6,7 @@ namespace NamPhuThuy.SceneManagement
         public const string SCENE_LOADING = "Loading";
         public const string SCENE_MAIN_MENU = "MainMenu";
         public const string SCENE_GAME_PLAY = "GamePlay";
+        public const string SCENE_DUMMY = "Dummy";
 
         public enum SceneName
         {
@@ -13,7 +14,8 @@ namespace NamPhuThuy.SceneManagement
             Bootstrap = 1,
             Loading = 2,
             MainMenu = 3,
-            GamePlay = 4
+            GamePlay = 4,
+            Dummy = 999
         }
     }
 }

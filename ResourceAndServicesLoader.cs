@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using DG.Tweening;
 using MoreMountains.Tools;
+using NamPhuThuy.AudioManage;
 using NamPhuThuy.Common;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -68,7 +69,9 @@ namespace NamPhuThuy.SceneManagement
 
         private void Awake()
         {
-            // AudioManager.Ins.Play(AudioEnum.MUSIC_BACKGROUND_INGAME);
+            AudioManager.Ins.StopAll(Audio.Type.MUSIC);
+            AudioManager.Ins.Play(AudioEnum.MUSIC_BG_NEW);
+            
             SceneManager.sceneLoaded += OnSceneLoaded;
 
             progressBarFill.fillAmount = 0f;

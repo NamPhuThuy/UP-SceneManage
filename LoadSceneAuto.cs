@@ -15,7 +15,7 @@ namespace NamPhuThuy.SceneManagement
             NONE = 0,
             START = 1,
             AWAKE = 2,
-            ON_ENABLE = 3
+            ON_ENABLE = 3,
         }  
         [SerializeField] private ActiveOn activeOn = ActiveOn.AWAKE;
         [SerializeField] private SceneManageConst.SceneName targetSceneName = SceneManageConst.SceneName.None;

@@ -117,7 +117,7 @@ namespace NamPhuThuy.SceneManagement
 
         private IEnumerator SlowTransititon()
         {
-            DebugLogger.LogFrog();
+            // DebugLogger.LogFrog();
             var waitForSeconds = new WaitForSeconds(Time.fixedDeltaTime);
 
             float progress = 0f;
@@ -146,7 +146,7 @@ namespace NamPhuThuy.SceneManagement
             }   
 
             // Load target scene additively
-            DebugLogger.LogFrog(message:$"About to load the target scene");
+            // DebugLogger.LogFrog(message:$"About to load the target scene");
             SceneManager.LoadScene(targetScene.ToString(), LoadSceneMode.Additive);
 
             // Gate until scene loaded, services ready (if enabled), and min time elapsed
@@ -205,7 +205,7 @@ namespace NamPhuThuy.SceneManagement
             seq.Chain(Tween.Delay(0f, () =>
             {
                 // 1. Setup: Activate and reset alpha to 0
-                Debug.Log(message: $"Turn onthe black screen");
+                // Debug.Log(message: $"Turn onthe black screen");
                 blackBackground.gameObject.SetActive(true);
                 var c = blackBackground.color;
                 c.a = 0f;
@@ -216,14 +216,14 @@ namespace NamPhuThuy.SceneManagement
             // 2. The Fade Tween: Sequence waits for this to finish
             seq.Chain(Tween.Delay(0f, () =>
             {
-                Debug.Log(message: $"Fade in the black screen");
+                // Debug.Log(message: $"Fade in the black screen");
                 Tween.Alpha(blackBackground, 1f, fadeOutDuration);
             }));
             
             // 3. Finalize: Runs exactly when the fade finishes
             seq.Chain(Tween.Delay(fadeOutDuration + 0.2f, () =>
             {
-                Debug.Log(message: $"About to send EGameStarted");
+                // Debug.Log(message: $"About to send EGameStarted");
                 
                 SceneManager.UnloadSceneAsync(currentScene.ToString());
                 

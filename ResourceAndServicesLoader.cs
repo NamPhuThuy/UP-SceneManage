@@ -1,18 +1,12 @@
 // csharp
 using System.Collections;
 using System.Collections.Generic;
-using DG.Tweening;
-using MoreMountains.Tools;
-using NamPhuThuy.AudioManage;
-using NamPhuThuy.Common;
+using PrimeTween;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.ResourceManagement.AsyncOperations;
-using Ease = PrimeTween.Ease;
-using Sequence = PrimeTween.Sequence;
-using Tween = PrimeTween.Tween;
 
 namespace NamPhuThuy.SceneManagement
 {
@@ -27,7 +21,7 @@ namespace NamPhuThuy.SceneManagement
         [SerializeField] private Image blackBackground;
         [SerializeField] private Image progressBarFill;
         [SerializeField] private Image splashScreen;
-        [SerializeField] private TMP_Text loadingText;
+        [SerializeField] private TMP_Text percentText;
 
         [Header("Customize")]
         [SerializeField] private float minExpectedLoadingTime = 1.5f;
@@ -69,13 +63,13 @@ namespace NamPhuThuy.SceneManagement
 
         private void Awake()
         {
-            AudioManager.Ins.StopAll(Audio.Type.MUSIC);
-            AudioManager.Ins.Play(AudioEnum.MUSIC_BG_NEW);
+            /*AudioManager.Ins.StopAll(Audio.Type.MUSIC);
+            AudioManager.Ins.Play(AudioEnum.MUSIC_BG_NEW);*/
             
             SceneManager.sceneLoaded += OnSceneLoaded;
 
             progressBarFill.fillAmount = 0f;
-            loadingText.text = "0%";
+            percentText.text = "0%";
         }
 
         private void Start()
@@ -128,7 +122,7 @@ namespace NamPhuThuy.SceneManagement
             // SPLASH SCREEN
             bool isSplashScreenHidden = false;
 
-            splashScreen.DOKill();
+            Tween.StopAll(splashScreen);
             _tweens.Add(Tween.Alpha(splashScreen, 0f, 0.3f).OnComplete(() =>
             {
                 splashScreen.gameObject.SetActive(false);
@@ -164,7 +158,7 @@ namespace NamPhuThuy.SceneManagement
             void UpdateProgress()
             {
                 progressBarFill.fillAmount = progress;
-                loadingText.text = $"{(int)(progress * 100f)}%";
+                percentText.text = $"{(int)(progress * 100f)}%";
                 if (progress < 1f)
                     progress += deltaProgress;
             }
@@ -173,19 +167,19 @@ namespace NamPhuThuy.SceneManagement
         // csharp
         private void BurstTransition()
         {
-            DebugLogger.Log();
+            Debug.Log(message:$"BurstTransition");
             if (progressBarFill.IsActive())
             {
-                progressBarFill.DOKill();
+                Tween.StopAll(progressBarFill);
             }
 
             if (blackBackground.IsActive())
             {
-                blackBackground.DOKill();
+                Tween.StopAll(blackBackground);
             }
 
-            var seq = Sequence.Create();
-            DebugLogger.Log(message:$"Sequence is created");
+            var seq = PrimeTween.Sequence.Create();
+            Debug.Log(message:$"Sequence is created");
 
             // Progress 0 -> 100% linearly
             seq.Chain(Tween.Custom(
@@ -195,12 +189,12 @@ namespace NamPhuThuy.SceneManagement
                 onValueChange: val => 
                 {
                     progressBarFill.fillAmount = val;
-                    loadingText.text = $"{(int)(val * 100f)}%";
+                    percentText.text = $"{(int)(val * 100f)}%";
                 },
                 ease: Ease.OutQuad 
             ));
             
-            DebugLogger.Log(message:$"Last Step");
+            Debug.Log(message:$"Last Step");
 
             seq.Chain(Tween.Delay(0f, () =>
             {
@@ -224,35 +218,13 @@ namespace NamPhuThuy.SceneManagement
             seq.Chain(Tween.Delay(fadeOutDuration + 0.2f, () =>
             {
                 // Debug.Log(message: $"About to send EGameStarted");
-                
                 SceneManager.UnloadSceneAsync(currentScene.ToString());
                 
-                DebugLogger.Log(message: $"About to unload scene: {currentScene}");
-                MMEventManager.TriggerEvent(new EGameStarted());
+                Debug.Log(message: $"About to unload scene: {currentScene}");
+                // MMEventManager.TriggerEvent(new EGameStarted());
                 
                 Debug.Log(message: $"Done trigger event EGameStarted");
             }));
-            
-            /*seq.ChainCallback(() => 
-                {
-                    // 1. Setup: Activate and reset alpha to 0
-                    Debug.Log(message:$"Fade in the black screen");
-                    blackBackground.gameObject.SetActive(true);
-                    var c = blackBackground.color;
-                    c.a = 0f;
-                    blackBackground.color = c;
-                })
-                    // 2. The Fade Tween: Sequence waits for this to finish
-                .Chain(Tween.Alpha(blackBackground, 1f, fadeOutDuration)) 
-                    // 3. Finalize: Runs exactly when the fade finishes
-                .ChainCallback(() => 
-                {
-                    MMEventManager.TriggerEvent(new EGameStarted());
-                    
-                    DebugLogger.Log(message: $"About to unload scene: {currentScene}");
-                    SceneManager.UnloadSceneAsync(currentScene.ToString());
-                    // loadingScreenContainer.gameObject.SetActive(false);
-                });*/
         }
 
 

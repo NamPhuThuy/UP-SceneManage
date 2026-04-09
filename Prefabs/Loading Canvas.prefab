@@ -703,7 +703,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32b0a68f960028d45bf8961c27e719ce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentScene: 0
+  currentScene: 2
   targetScene: 4
   loadingScreenContainer: {fileID: 2871202454875245695}
   blackBackground: {fileID: 4787416609997662962}
